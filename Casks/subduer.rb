@@ -1,6 +1,6 @@
 cask "subduer" do
-  version "0.1.4"
-  sha256 "ccac2eee9f1964ea8cfe18b95f4b63b784216cfd3d657fea8384e2e4436295b2"
+  version "0.1.5"
+  sha256 "00ca04c715e2c1f2cae1baa56e82438ff62a2d852980918ebca79808e2699726"
 
   url "https://github.com/cjcooper/subduer/releases/download/v#{version}/Subduer_#{version}_aarch64.dmg"
   name "Subduer"
