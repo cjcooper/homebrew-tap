@@ -18,12 +18,12 @@ cask "scuttle" do
   app "Scuttle.app"
 
   uninstall launchctl: "Scuttle",
-            quit:      "com.it-problems.scuttle",
-            delete:    "~/Library/LaunchAgents/Scuttle.plist"
+            quit:      "com.it-problems.scuttle"
 
   zap trash: [
     "~/Library/Application Support/com.it-problems.scuttle",
     "~/Library/Caches/com.it-problems.scuttle",
+    "~/Library/LaunchAgents/Scuttle.plist",
     "~/Library/Preferences/com.it-problems.scuttle.plist",
     "~/Library/Saved Application State/com.it-problems.scuttle.savedState",
     "~/Library/WebKit/com.it-problems.scuttle",
