@@ -1,33 +1,28 @@
 #!/usr/bin/env bash
-# Bump this tap's casks to each app's latest GitHub release, push, then
-# upgrade the installed apps.
+# Bump this tap's casks to each app's latest GitHub release and push.
+# It changes only this repo: Homebrew's tap copy and installed apps are untouched.
 #
 #   bump.sh                     every cask in Casks/
 #   bump.sh scuttle subduer     only these casks
-#   bump.sh --dry-run           show what would change; edit/push/upgrade nothing
-#   bump.sh --no-upgrade        bump and push, skip `brew upgrade`
+#   bump.sh --dry-run           show what would change; edit/push nothing
 #   bump.sh --co-author "Name <email>"   add a Co-Authored-By trailer
 #
 # Works on the checkout this script lives in. The latest version comes from
 # github.com/<owner>/<app>/releases/latest (what the casks' livecheck
 # :github_latest uses). The script fetches that release's .sha256, downloads
 # the dmg, checks they match, and rewrites `version` and `sha256`. All bumps
-# go in one commit on main, which is pushed. Then Homebrew's own copy of the
-# tap (`brew --repo cjcooper/tap`) is fast-forwarded so `brew upgrade` sees
-# the new versions.
+# go in one commit on main, which is pushed.
 set -euo pipefail
 
-tap="cjcooper/tap"
 die() { echo "error: $*" >&2; exit 1; }
 
-dry_run=0; upgrade=1; co_author=""; casks=()
+dry_run=0; co_author=""; casks=()
 while (( $# )); do
   case "$1" in
     --dry-run) dry_run=1 ;;
-    --no-upgrade) upgrade=0 ;;
     --co-author) shift; co_author="${1:?--co-author needs a value}"
                  co_author="${co_author#Co-Authored-By: }" ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
     -*) die "unknown option: $1" ;;
     *) casks+=("$1") ;;
   esac
@@ -101,7 +96,7 @@ join() { local out="" s; for s in "$@"; do out+="${out:+, }$s"; done; echo "$out
 if (( ${#bumped[@]} == 0 )); then
   echo "Nothing to bump."
 elif (( dry_run )); then
-  echo "Dry run: would bump $(join "${summary[@]}"), commit, push and upgrade."
+  echo "Dry run: would bump $(join "${summary[@]}"), commit and push."
   exit 0
 else
   files=(); for c in "${bumped[@]}"; do files+=("Casks/$c.rb"); done
@@ -113,54 +108,4 @@ else
   git commit -q -m "$msg" -- "${files[@]}"
   git push -q origin main
   echo "Pushed $(git log --oneline -1)"
-fi
-
-(( upgrade )) || exit 0
-
-# --- sync Homebrew's copy of the tap ----------------------------------------
-brew_tap="$(brew --repo "$tap")"
-if [[ ! -d "$brew_tap/.git" ]]; then
-  echo "note: $tap isn't tapped; skipping upgrade"; exit 0
-fi
-if (( ! dry_run )) && [[ "$(cd "$brew_tap" && pwd -P)" != "$(pwd -P)" ]]; then
-  [[ -z "$(git -C "$brew_tap" status --porcelain)" ]] \
-    || die "Homebrew's tap copy $brew_tap has uncommitted changes; look before touching them"
-  b="$(git -C "$brew_tap" symbolic-ref --short HEAD)"
-  if [[ "$b" != main ]]; then
-    echo "note: $brew_tap was on branch \"$b\"; switching to main (the branch is kept)"
-    git -C "$brew_tap" switch -q main
-  fi
-  git -C "$brew_tap" pull -q --ff-only origin main \
-    || die "can't fast-forward $brew_tap to origin/main"
-fi
-
-# --- upgrade installed apps -------------------------------------------------
-# The tap copy is synced above, so skip auto-update: it can leave
-# `brew outdated` printing nothing, which made outdated apps look current.
-export HOMEBREW_NO_AUTO_UPDATE=1
-need_tty=()
-for c in "${casks[@]}"; do
-  brew list --cask "$tap/$c" >/dev/null 2>&1 || { echo "$c: not installed"; continue; }
-  # Compare the installed version with the cask's directly.
-  have="$(brew list --cask --versions "$c" | awk '{print $NF}')"
-  want="$(sed -n 's/^  version "\(.*\)"$/\1/p' "Casks/$c.rb" | head -1)"
-  if [[ "$have" != "$want" ]]; then
-    if (( dry_run )); then echo "$c: would upgrade $have -> $want"; continue; fi
-    echo "$c: $have -> $want"
-    if out="$(brew upgrade --cask "$tap/$c" 2>&1)"; then
-      echo "$c: upgraded to $(brew list --cask --versions "$c" | awk '{print $2}')"
-    elif grep -q 'a password is required' <<<"$out"; then
-      need_tty+=("$tap/$c")
-    else
-      echo "$out" | tail -15 >&2; die "$c: brew upgrade failed"
-    fi
-  else
-    echo "$c: installed version is current"
-  fi
-done
-if (( ${#need_tty[@]} )); then
-  echo
-  echo "NEEDS_SUDO: these upgrades ask for a password; run in a terminal:"
-  echo "  brew upgrade --cask ${need_tty[*]}"
-  exit 2
 fi
