@@ -1,6 +1,6 @@
 cask "gestalt" do
-  version "0.1.13"
-  sha256 "32c72917c295cbf8334aa552b8bbe6b923d46fbc39acede1ed7dfa9a64cc4d23"
+  version "0.1.14"
+  sha256 "1b251dffd400418f9de3ab4fe72c80e0ab7d01b096eab05fb727d3168fb7a70a"
 
   url "https://github.com/cjcooper/gestalt/releases/download/v#{version}/Gestalt_#{version}_aarch64.dmg"
   name "Gestalt"
