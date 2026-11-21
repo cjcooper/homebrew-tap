@@ -1,6 +1,6 @@
 cask "scuttle" do
-  version "0.1.7"
-  sha256 "1770a50857c12ffde5d84814715f90ad31a782b0bf2f09d289124db0f969ea14"
+  version "0.1.8"
+  sha256 "b9cfc83730b019816fcdbf600a227a3577c0dc70c022d334a02d508667bed01f"
 
   url "https://github.com/cjcooper/scuttle/releases/download/v#{version}/Scuttle_#{version}_aarch64.dmg"
   name "Scuttle"
